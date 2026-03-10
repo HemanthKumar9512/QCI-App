@@ -72,7 +72,7 @@ Custom FedAvg + PPO implementations
 🏗 Quick Start
 
 # Clone and run
-git clone https://github.com/yourusername/qci-platform.git
+git clone https://github.com/HemanthKumar9512/qci-platform.git
 cd qci-platform
 docker-compose up --build
 
@@ -143,15 +143,4 @@ cd frontend && npm run dev
 # Production
 docker-compose up --build
 
-📁 Project Structure
-qci-platform/
-├── frontend/          # Next.js app
-│   ├── app/           # Pages (dashboard, quantum, blockchain)
-│   ├── components/    # Reusable UI components
-│   └── hooks/         # Custom React hooks
-├── backend/           # Node.js server
-│   ├── src/
-│   │   ├── ml/        # Quantum, Federated, RL modules
-│   │   ├── blockchain/# Chain, ZK proofs, contracts
-│   │   └── services/  # Business logic
-└── docker-compose.yml # PostgreSQL + Redis + App
+
