@@ -112,70 +112,7 @@ Tool	Purpose
 Docker	Containerization
 Docker Compose	Multi-container orchestration
 Winston	Structured logging
-🏗 Architecture
-text
-┌─────────────────────────────────────────────────────────────┐
-│                         Frontend Layer                       │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐      │
-│  │ Dashboard│ │Customers │ │ Quantum  │ │Blockchain│      │
-│  │   Page   │ │   Page   │ │   Page   │ │   Page   │      │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘      │
-│         ↓           ↓           ↓           ↓              │
-│  ┌──────────────────────────────────────────────────┐      │
-│  │          State Management (Zustand)              │      │
-│  └──────────────────────────────────────────────────┘      │
-│         ↓           ↓           ↓           ↓              │
-│  ┌──────────────────────────────────────────────────┐      │
-│  │     React Query + Socket.IO Client (Hooks)       │      │
-│  └──────────────────────────────────────────────────┘      │
-└──────────────────────────┬──────────────────────────────────┘
-                           │ WebSocket (Socket.IO)
-                           │ REST/GraphQL
-                           ▼
-┌─────────────────────────────────────────────────────────────┐
-│                         Backend Layer                       │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │           Express.js + Apollo Server                │    │
-│  └─────────────────────────────────────────────────────┘    │
-│         ↓           ↓           ↓           ↓               │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐        │
-│  │ Customers│ │Predictions│ │Strategies│ │ Pricing  │       │
-│  │ Service  │ │ Service   │ │ Service  │ │ Service  │       │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘        │
-│         ↓           ↓           ↓           ↓               │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │                  ML Modules                       │     │
-│  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐  │    │
-│  │  │Quantum  │ │ Vedic   │ │Fibonacci│ │ Mayan   │  │    │
-│  │  │Circuit  │ │Preproc  │ │Segmenter│ │Calendar │  │    │
-│  │  └─────────┘ └─────────┘ └─────────┘ └─────────┘  │    │
-│  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐  │    │
-│  │  │Sentiment│ │Federated│ │   RL    │ │Quantum  │  │    │
-│  │  │Analyzer │ │Learning │ │  Agent  │ │Annealing│  │    │
-│  │  └─────────┘ └─────────┘ └─────────┘ └─────────┘  │    │
-│  └─────────────────────────────────────────────────────┘  │
-│         ↓           ↓           ↓           ↓             │
-│  ┌─────────────────────────────────────────────────────┐  │
-│  │               Blockchain Layer                      │  │
-│  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐  │    │
-│  │  │  Chain  │ │   ZK    │ │Merkle   │ │ Smart   │  │    │
-│  │  │ Manager │ │ProofEng │ │ Tree    │ │Contract │  │    │
-│  │  └─────────┘ └─────────┘ └─────────┘ └─────────┘  │    │
-│  └─────────────────────────────────────────────────────┘  │
-│         ↓           ↓           ↓           ↓             │
-│  ┌─────────────────────────────────────────────────────┐  │
-│  │            Job Queues (Bull + Redis)               │    │
-│  │  ┌─────────┐ ┌─────────┐ ┌─────────┐               │    │
-│  │  │Predict- │ │Retrain  │ │Block-   │               │    │
-│  │  │ion Job  │ │  Job    │ │chain Job│               │    │
-│  │  └─────────┘ └─────────┘ └─────────┘               │    │
-│  └─────────────────────────────────────────────────────┘    │
-└──────────┬────────────────┬────────────────┬─────────────────┘
-           ↓                ↓                ↓
-    ┌───────────┐    ┌───────────┐    ┌───────────┐
-    │PostgreSQL │    │   Redis   │    │   Bull    │
-    │  Primary  │    │   Cache   │    │   Queue   │
-    └───────────┘    └───────────┘    └───────────┘
+
 🚀 Quick Start
 Prerequisites
 Docker and Docker Compose (v20.10+)
@@ -222,8 +159,7 @@ npm run dev
 cd frontend
 npm install
 npm run dev
-📸 Screenshots
-<div align="center"> <img src="docs/screenshots/dashboard.png" alt="Dashboard" width="800"/> <p><em>Command Center Dashboard with Real-Time Metrics</em></p> <img src="docs/screenshots/quantum-circuit.png" alt="Quantum Circuit" width="800"/> <p><em>5-Qubit Quantum Circuit Visualization</em></p> <img src="docs/screenshots/blockchain.png" alt="Blockchain Explorer" width="800"/> <p><em>Blockchain Ledger with Merkle Tree Visualization</em></p> <img src="docs/screenshots/customer-deepdive.png" alt="Customer Deep Dive" width="800"/> <p><em>Individual Customer Analysis with Churn Gauge</em></p> </div>
+
 🔬 Detailed Features
 1. Quantum Machine Learning Pipeline
 Variational Quantum Circuit (VQC)
