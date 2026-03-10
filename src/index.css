@@ -1,0 +1,123 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&family=Source+Sans+3:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 40% 5%;
+    --foreground: 214 32% 91%;
+    --card: 218 40% 8%;
+    --card-foreground: 214 32% 91%;
+    --popover: 218 40% 8%;
+    --popover-foreground: 214 32% 91%;
+    --primary: 187 85% 37%;
+    --primary-foreground: 220 40% 5%;
+    --secondary: 218 35% 14%;
+    --secondary-foreground: 214 32% 91%;
+    --muted: 218 30% 18%;
+    --muted-foreground: 215 20% 55%;
+    --accent: 263 70% 52%;
+    --accent-foreground: 214 32% 91%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 214 32% 91%;
+    --border: 210 40% 22%;
+    --input: 218 35% 14%;
+    --ring: 187 85% 37%;
+    --radius: 0.625rem;
+
+    /* QCI custom tokens */
+    --qci-bg-deep: 220 40% 5%;
+    --qci-bg-card: 218 40% 8%;
+    --qci-bg-input: 218 35% 14%;
+    --qci-border: 210 40% 22%;
+    --qci-cyan: 187 85% 37%;
+    --qci-teal: 189 94% 43%;
+    --qci-purple: 263 70% 52%;
+    --qci-gold: 38 92% 50%;
+    --qci-green: 160 84% 39%;
+    --qci-pink: 330 81% 60%;
+    --qci-red: 0 84% 60%;
+    --qci-blue: 217 91% 60%;
+    --qci-text: 214 32% 91%;
+    --qci-text-secondary: 215 20% 65%;
+    --qci-text-muted: 215 16% 35%;
+
+    --sidebar-background: 220 40% 4%;
+    --sidebar-foreground: 214 32% 91%;
+    --sidebar-primary: 187 85% 37%;
+    --sidebar-primary-foreground: 220 40% 5%;
+    --sidebar-accent: 218 35% 14%;
+    --sidebar-accent-foreground: 214 32% 91%;
+    --sidebar-border: 210 40% 22%;
+    --sidebar-ring: 187 85% 37%;
+
+    --font-heading: 'Playfair Display', Georgia, serif;
+    --font-body: 'Source Sans 3', 'Segoe UI', Calibri, sans-serif;
+    --font-mono: 'JetBrains Mono', Consolas, 'Courier New', monospace;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-body);
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    letter-spacing: 0.03em;
+  }
+  code, pre, .font-mono {
+    font-family: var(--font-mono);
+  }
+}
+
+@layer utilities {
+  .glow-cyan {
+    box-shadow: 0 0 20px -5px hsl(var(--qci-cyan) / 0.3);
+  }
+  .glow-purple {
+    box-shadow: 0 0 20px -5px hsl(var(--qci-purple) / 0.3);
+  }
+  .glow-gold {
+    box-shadow: 0 0 20px -5px hsl(var(--qci-gold) / 0.3);
+  }
+  .glow-green {
+    box-shadow: 0 0 20px -5px hsl(var(--qci-green) / 0.3);
+  }
+  .glow-red {
+    box-shadow: 0 0 20px -5px hsl(var(--qci-red) / 0.3);
+  }
+  .text-gradient-cyan {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, hsl(var(--qci-cyan)), hsl(var(--qci-teal)));
+  }
+  .text-gradient-purple {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, hsl(var(--qci-purple)), hsl(var(--qci-pink)));
+  }
+  .bg-gradient-card {
+    background: linear-gradient(145deg, hsl(var(--qci-bg-card)), hsl(var(--qci-bg-deep)));
+  }
+  .border-glow-cyan {
+    border-color: hsl(var(--qci-cyan) / 0.3);
+  }
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--qci-border)) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(var(--qci-border));
+    border-radius: 3px;
+  }
+}

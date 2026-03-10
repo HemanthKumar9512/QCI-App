@@ -1,0 +1,1000 @@
+import { useState, useEffect, useRef, useCallback } from "react";
+
+// ─── Utility helpers ─────────────────────────────────────────────────────────
+const rand = (min, max) => Math.random() * (max - min) + min;
+const randInt = (min, max) => Math.floor(rand(min, max));
+const lerp = (a, b, t) => a + (b - a) * t;
+
+// ─── Simulated Real-Time Data ────────────────────────────────────────────────
+const CUSTOMER_NAMES = ["Aisha Rahman","Leo Chen","Maria Garcia","Dmitri Volkov","Priya Nair","James Okafor","Suki Tanaka","Carlos Mendez","Fatima Al-Hassan","Liam O'Brien"];
+const RISK_STRATEGIES = {
+  critical: ["Immediate CEO outreach","Emergency loyalty bonus","Custom SLA upgrade","Dedicated success manager"],
+  high: ["Personal retention call","Exclusive feature preview","Discount next 3 months","VIP tier upgrade"],
+  medium: ["Onboarding re-engagement","Feature education session","Peer community invite","Milestone reward"],
+  low: ["Loyalty points boost","Product newsletter","NPS survey follow-up","Referral bonus offer"]
+};
+
+function generateCustomer(id) {
+  const churnScore = rand(0.05, 0.98);
+  const riskLevel = churnScore > 0.75 ? "critical" : churnScore > 0.5 ? "high" : churnScore > 0.3 ? "medium" : "low";
+  return {
+    id,
+    name: CUSTOMER_NAMES[id % CUSTOMER_NAMES.length],
+    churnScore: +churnScore.toFixed(3),
+    riskLevel,
+    clv: randInt(1200, 85000),
+    daysActive: randInt(14, 1200),
+    sentiment: rand(-1, 1).toFixed(2),
+    lastActivity: randInt(1, 60),
+    npsScore: randInt(1, 10),
+    supportTickets: randInt(0, 12),
+    quantumConfidence: +(0.85 + rand(0, 0.14)).toFixed(3),
+    strategy: RISK_STRATEGIES[riskLevel][randInt(0, 4)],
+    priceSensitivity: rand(0.1, 0.9).toFixed(2),
+    segment: ["Enterprise", "SMB", "Startup", "Individual"][randInt(0, 4)],
+    blockchainHash: Array.from({length: 16}, () => "0123456789abcdef"[randInt(0, 16)]).join(""),
+  };
+}
+
+const initialCustomers = Array.from({ length: 20 }, (_, i) => generateCustomer(i));
+
+// ─── Color tokens ────────────────────────────────────────────────────────────
+const RISK_COLORS = {
+  critical: "#EF4444",
+  high:     "#F59E0B",
+  medium:   "#3B82F6",
+  low:      "#10B981",
+};
+
+// ─── Sub-components ──────────────────────────────────────────────────────────
+
+function GlowOrb({ cx, cy, r, color, opacity = 0.12 }) {
+  return (
+    <div style={{
+      position: "absolute",
+      left: cx - r, top: cy - r,
+      width: r * 2, height: r * 2,
+      borderRadius: "50%",
+      background: `radial-gradient(circle, ${color}${Math.round(opacity * 255).toString(16).padStart(2,"0")} 0%, transparent 70%)`,
+      pointerEvents: "none",
+    }} />
+  );
+}
+
+function QuantumParticles() {
+  const canvasRef = useRef(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+    const W = canvas.width, H = canvas.height;
+
+    const particles = Array.from({ length: 80 }, () => ({
+      x: rand(0, W), y: rand(0, H),
+      vx: rand(-0.3, 0.3), vy: rand(-0.3, 0.3),
+      r: rand(1, 2.5),
+      alpha: rand(0.2, 0.8),
+      color: ["#0891B2", "#06B6D4", "#7C3AED", "#10B981"][randInt(0, 4)],
+    }));
+
+    let raf;
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      // connections
+      particles.forEach((p, i) => {
+        particles.slice(i + 1).forEach(q => {
+          const dx = p.x - q.x, dy = p.y - q.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 120) {
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(q.x, q.y);
+            ctx.strokeStyle = `rgba(8,145,178,${0.15 * (1 - dist / 120)})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+        });
+      });
+      // dots
+      particles.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = p.color + Math.round(p.alpha * 255).toString(16).padStart(2, "0");
+        ctx.fill();
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < 0 || p.x > W) p.vx *= -1;
+        if (p.y < 0 || p.y > H) p.vy *= -1;
+      });
+      raf = requestAnimationFrame(draw);
+    }
+    draw();
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  return <canvas ref={canvasRef} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.6 }} />;
+}
+
+function ChurnGauge({ score }) {
+  const angle = -135 + score * 270;
+  const color = score > 0.75 ? "#EF4444" : score > 0.5 ? "#F59E0B" : score > 0.3 ? "#3B82F6" : "#10B981";
+  const label = score > 0.75 ? "CRITICAL" : score > 0.5 ? "HIGH" : score > 0.3 ? "MEDIUM" : "LOW";
+
+  return (
+    <div style={{ position: "relative", width: 160, height: 100, margin: "0 auto" }}>
+      <svg width="160" height="110" viewBox="0 0 160 110">
+        {/* Track */}
+        <path d="M 20 95 A 60 60 0 0 1 140 95" fill="none" stroke="#1E3A5F" strokeWidth="12" strokeLinecap="round" />
+        {/* Fill */}
+        <path d="M 20 95 A 60 60 0 0 1 140 95" fill="none" stroke={color} strokeWidth="12" strokeLinecap="round"
+          strokeDasharray={`${score * 188} 188`} />
+        {/* Needle */}
+        <line
+          x1="80" y1="95"
+          x2={80 + 48 * Math.cos((angle - 90) * Math.PI / 180)}
+          y2={95 + 48 * Math.sin((angle - 90) * Math.PI / 180)}
+          stroke={color} strokeWidth="2.5" strokeLinecap="round"
+        />
+        <circle cx="80" cy="95" r="5" fill={color} />
+        <text x="80" y="78" textAnchor="middle" fill="#FFFFFF" fontSize="18" fontWeight="bold" fontFamily="Georgia">
+          {(score * 100).toFixed(0)}%
+        </text>
+        <text x="80" y="108" textAnchor="middle" fill={color} fontSize="10" fontWeight="bold" fontFamily="Consolas" letterSpacing="2">
+          {label}
+        </text>
+      </svg>
+    </div>
+  );
+}
+
+function QuantumCircuitViz({ active }) {
+  const rows = 5;
+  const cols = 6;
+  const gates = ["H", "X", "Y", "Z", "Rx", "Ry", "Rz", "CNOT", "T", "S"];
+  const [activeCols, setActiveCols] = useState([0]);
+
+  useEffect(() => {
+    if (!active) return;
+    const timer = setInterval(() => {
+      setActiveCols(prev => {
+        const next = prev[0] + 1;
+        return next >= cols ? [0] : [next];
+      });
+    }, 400);
+    return () => clearInterval(timer);
+  }, [active, cols]);
+
+  return (
+    <svg width="100%" viewBox={`0 0 ${cols * 80 + 40} ${rows * 44 + 20}`} style={{ fontFamily: "Consolas, monospace" }}>
+      {/* qubit lines */}
+      {Array.from({ length: rows }, (_, r) => (
+        <g key={r}>
+          <line x1="20" y1={r * 44 + 30} x2={cols * 80 + 20} y2={r * 44 + 30} stroke="#1E3A5F" strokeWidth="1.5" />
+          <text x="5" y={r * 44 + 34} fill="#94A3B8" fontSize="11">q{r}</text>
+        </g>
+      ))}
+      {/* gates */}
+      {Array.from({ length: cols }, (_, c) =>
+        Array.from({ length: rows }, (_, r) => {
+          const gate = gates[(c * rows + r) % gates.length];
+          const isActive = activeCols.includes(c);
+          return (
+            <g key={`${c}-${r}`}>
+              <rect
+                x={c * 80 + 28} y={r * 44 + 14}
+                width={38} height={32}
+                rx={4}
+                fill={isActive ? "#0891B2" : "#0F1F35"}
+                stroke={isActive ? "#06B6D4" : "#1E3A5F"}
+                strokeWidth="1.2"
+                style={{ transition: "fill 0.2s, stroke 0.2s" }}
+              />
+              <text
+                x={c * 80 + 47} y={r * 44 + 35}
+                textAnchor="middle" fill={isActive ? "#FFFFFF" : "#94A3B8"}
+                fontSize="11" fontWeight="bold"
+              >{gate}</text>
+            </g>
+          );
+        })
+      )}
+      {/* measurement */}
+      {Array.from({ length: rows }, (_, r) => (
+        <g key={`m${r}`}>
+          <rect x={cols * 80 + 22} y={r * 44 + 14} width={16} height={32} rx={3} fill="#7C3AED33" stroke="#7C3AED" strokeWidth="1" />
+          <text x={cols * 80 + 30} y={r * 44 + 35} textAnchor="middle" fill="#7C3AED" fontSize="9">⊗</text>
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+function BlockchainViz({ customers }) {
+  const recent = customers.slice(0, 5);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {recent.map((c, i) => (
+        <div key={c.id} style={{
+          display: "flex", alignItems: "center", gap: 10,
+          padding: "8px 12px",
+          background: "#0F1F35", borderRadius: 6,
+          border: "1px solid #1E3A5F",
+          animation: i === 0 ? "fadeIn 0.4s ease" : undefined
+        }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: 4,
+            background: `${RISK_COLORS[c.riskLevel]}22`,
+            border: `1.5px solid ${RISK_COLORS[c.riskLevel]}`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 12, fontWeight: "bold", color: RISK_COLORS[c.riskLevel],
+            flexShrink: 0
+          }}>{i + 1}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <span style={{ color: "#E2E8F0", fontSize: 12, fontWeight: 600 }}>{c.name}</span>
+              <span style={{ fontSize: 9, padding: "2px 6px", borderRadius: 4, background: `${RISK_COLORS[c.riskLevel]}22`, color: RISK_COLORS[c.riskLevel], fontWeight: 700, letterSpacing: 1 }}>
+                {c.riskLevel.toUpperCase()}
+              </span>
+            </div>
+            <div style={{ fontSize: 10, color: "#64748B", fontFamily: "Consolas", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              0x{c.blockchainHash} · ZK✓ · Conf: {(c.quantumConfidence * 100).toFixed(1)}%
+            </div>
+          </div>
+          <div style={{ textAlign: "right", flexShrink: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: RISK_COLORS[c.riskLevel] }}>{(c.churnScore * 100).toFixed(0)}%</div>
+            <div style={{ fontSize: 9, color: "#64748B" }}>churn risk</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SentimentWave({ value }) {
+  const points = Array.from({ length: 20 }, (_, i) => {
+    const x = (i / 19) * 100;
+    const y = 50 + Math.sin((i / 19) * Math.PI * 3 + value * 5) * 20 * Math.abs(value);
+    return `${x},${y}`;
+  }).join(" ");
+
+  const color = value > 0.3 ? "#10B981" : value < -0.3 ? "#EF4444" : "#F59E0B";
+
+  return (
+    <svg viewBox="0 0 100 100" style={{ width: "100%", height: 60 }} preserveAspectRatio="none">
+      <polyline points={points} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
+      <text x="50" y="85" textAnchor="middle" fill={color} fontSize="12" fontWeight="bold">
+        {value > 0 ? "+" : ""}{parseFloat(value).toFixed(2)} sentiment
+      </text>
+    </svg>
+  );
+}
+
+function MetricCard({ label, value, sub, color = "#0891B2", trend }) {
+  return (
+    <div style={{
+      background: "#0F1F35",
+      border: "1px solid #1E3A5F",
+      borderRadius: 10,
+      padding: "14px 16px",
+      position: "relative",
+      overflow: "hidden",
+    }}>
+      <div style={{ position: "absolute", top: 0, left: 0, width: 4, height: "100%", background: color, borderRadius: "10px 0 0 10px" }} />
+      <div style={{ fontSize: 11, color: "#64748B", marginBottom: 4, letterSpacing: 1, textTransform: "uppercase" }}>{label}</div>
+      <div style={{ fontSize: 28, fontWeight: 800, color: color, fontFamily: "Georgia, serif", lineHeight: 1 }}>{value}</div>
+      {sub && <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 4 }}>{sub}</div>}
+      {trend && <div style={{ fontSize: 11, color: trend > 0 ? "#10B981" : "#EF4444", marginTop: 2 }}>
+        {trend > 0 ? "↑" : "↓"} {Math.abs(trend)}% vs last month
+      </div>}
+    </div>
+  );
+}
+
+function CustomerRow({ customer, onSelect, selected }) {
+  const rc = RISK_COLORS[customer.riskLevel];
+  return (
+    <div
+      onClick={() => onSelect(customer)}
+      style={{
+        display: "grid",
+        gridTemplateColumns: "1.5fr 0.8fr 0.8fr 0.8fr 0.9fr 1.2fr",
+        gap: 8,
+        padding: "10px 14px",
+        background: selected ? "#0891B222" : "#0A1628",
+        borderLeft: `3px solid ${rc}`,
+        borderBottom: "1px solid #1E3A5F",
+        cursor: "pointer",
+        transition: "background 0.15s",
+        alignItems: "center",
+      }}
+    >
+      <div>
+        <div style={{ fontWeight: 600, color: "#E2E8F0", fontSize: 13 }}>{customer.name}</div>
+        <div style={{ fontSize: 10, color: "#64748B" }}>{customer.segment} · {customer.daysActive}d active</div>
+      </div>
+      <div>
+        <div style={{ fontWeight: 700, color: rc, fontSize: 15 }}>{(customer.churnScore * 100).toFixed(0)}%</div>
+        <div style={{ fontSize: 9, padding: "1px 6px", display: "inline-block", borderRadius: 4, background: `${rc}22`, color: rc, fontWeight: 700, letterSpacing: 1 }}>
+          {customer.riskLevel.toUpperCase()}
+        </div>
+      </div>
+      <div style={{ color: "#94A3B8", fontSize: 12 }}>${(customer.clv / 1000).toFixed(1)}K CLV</div>
+      <div style={{ fontSize: 12, color: parseFloat(customer.sentiment) > 0 ? "#10B981" : "#EF4444" }}>
+        {parseFloat(customer.sentiment) > 0 ? "+" : ""}{customer.sentiment}
+      </div>
+      <div style={{ fontSize: 11, color: "#94A3B8" }}>{customer.quantumConfidence * 100}% conf.</div>
+      <div style={{ fontSize: 11, color: "#94A3B8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{customer.strategy}</div>
+    </div>
+  );
+}
+
+function PricingOptimizer({ customer }) {
+  const [optimizing, setOptimizing] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const runOptimizer = useCallback(async () => {
+    setOptimizing(true);
+    setResult(null);
+    // Simulate async quantum annealing
+    await new Promise(r => setTimeout(r, 1800));
+    const discount = (customer.priceSensitivity * 25).toFixed(1);
+    const expectedRetention = (0.7 + customer.quantumConfidence * 0.25).toFixed(2);
+    setResult({
+      recommendedDiscount: `${discount}%`,
+      bundleAdd: ["Priority Support", "API Access", "Analytics Pro"][randInt(0, 3)],
+      loyaltyTier: ["Gold", "Platinum", "Diamond"][randInt(0, 3)],
+      retentionProbability: expectedRetention,
+      revenueImpact: `+$${(customer.clv * 0.23).toFixed(0)}`,
+    });
+    setOptimizing(false);
+  }, [customer]);
+
+  return (
+    <div style={{ background: "#050A1A", border: "1px solid #1E3A5F", borderRadius: 10, padding: 16 }}>
+      <div style={{ fontWeight: 700, color: "#F59E0B", marginBottom: 12, fontSize: 13, letterSpacing: 2, textTransform: "uppercase" }}>⚛ Quantum Pricing Optimizer</div>
+      <button
+        onClick={runOptimizer}
+        disabled={optimizing}
+        style={{
+          width: "100%", padding: "10px 0", borderRadius: 8, border: "none",
+          background: optimizing ? "#1E3A5F" : "linear-gradient(135deg, #F59E0B, #EF4444)",
+          color: "#FFFFFF", fontWeight: 700, fontSize: 13, cursor: optimizing ? "wait" : "pointer",
+          marginBottom: 12, letterSpacing: 1
+        }}
+      >
+        {optimizing ? "🌀 Running Quantum Annealing..." : "▶ OPTIMIZE PRICING"}
+      </button>
+      {result && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, animation: "fadeIn 0.5s ease" }}>
+          {Object.entries(result).map(([k, v]) => (
+            <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #1E3A5F" }}>
+              <span style={{ color: "#94A3B8", fontSize: 11, textTransform: "uppercase", letterSpacing: 1 }}>{k.replace(/([A-Z])/g, " $1")}</span>
+              <span style={{ color: "#F59E0B", fontWeight: 700, fontSize: 12 }}>{v}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LiveFeedItem({ customer, timestamp }) {
+  const rc = RISK_COLORS[customer.riskLevel];
+  return (
+    <div style={{
+      display: "flex", gap: 10, padding: "8px 0",
+      borderBottom: "1px solid #1E3A5F",
+      animation: "slideIn 0.3s ease"
+    }}>
+      <div style={{ width: 6, height: 6, borderRadius: "50%", background: rc, marginTop: 5, flexShrink: 0 }} />
+      <div style={{ flex: 1 }}>
+        <span style={{ color: "#E2E8F0", fontSize: 12 }}>{customer.name}</span>
+        <span style={{ color: "#64748B", fontSize: 11 }}> · churn risk updated → </span>
+        <span style={{ color: rc, fontWeight: 700, fontSize: 12 }}>{(customer.churnScore * 100).toFixed(0)}%</span>
+        <div style={{ fontSize: 10, color: "#475569", marginTop: 2 }}>
+          ZK-proof: 0x{customer.blockchainHash.slice(0, 12)}... · {timestamp}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── MAIN APP ─────────────────────────────────────────────────────────────────
+export default function QuantumChurnIntelligence() {
+  const [tab, setTab] = useState("dashboard");
+  const [customers, setCustomers] = useState(initialCustomers);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [liveFeed, setLiveFeed] = useState([]);
+  const [aiRunning, setAiRunning] = useState(false);
+  const [aiLog, setAiLog] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterRisk, setFilterRisk] = useState("all");
+  const [processingCount, setProcessingCount] = useState(0);
+  const [quantumActive, setQuantumActive] = useState(true);
+  const [totalEventsProcessed, setTotalEventsProcessed] = useState(142857);
+
+  // Real-time simulation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const idx = randInt(0, customers.length);
+      const updated = generateCustomer(idx);
+      updated.name = customers[idx].name;
+      setCustomers(prev => {
+        const next = [...prev];
+        next[idx] = updated;
+        return next;
+      });
+      const now = new Date();
+      const ts = `${now.getHours().toString().padStart(2,"0")}:${now.getMinutes().toString().padStart(2,"0")}:${now.getSeconds().toString().padStart(2,"0")}`;
+      setLiveFeed(prev => [{ customer: updated, timestamp: ts }, ...prev.slice(0, 19)]);
+      setTotalEventsProcessed(p => p + randInt(50, 250));
+      setProcessingCount(randInt(1200, 5200));
+    }, 1500);
+    return () => clearInterval(interval);
+  }, [customers]);
+
+  // AI Log simulation
+  useEffect(() => {
+    const msgs = [
+      "Quantum circuit converged in 12 iterations",
+      "ZK-SNARK proof generated: 8ms",
+      "Federated model sync across 847 nodes",
+      "Vedic normalization applied to 128 features",
+      "BERT sentiment: batch of 50 processed",
+      "Blockchain audit log: 3 new entries committed",
+      "RL agent updated policy (ε=0.02)",
+      "Quantum kernel SVM: kernel matrix recomputed",
+      "Temporal decay function: Fibonacci cycle detected",
+      "Smart contract triggered: retention offer sent",
+    ];
+    const interval = setInterval(() => {
+      const msg = msgs[randInt(0, msgs.length)];
+      const ts = new Date().toISOString().slice(11, 23);
+      setAiLog(prev => [`[${ts}] ${msg}`, ...prev.slice(0, 14)]);
+    }, 800);
+    return () => clearInterval(interval);
+  }, []);
+
+  const filtered = customers.filter(c => {
+    const matchSearch = searchQuery === "" || c.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchRisk = filterRisk === "all" || c.riskLevel === filterRisk;
+    return matchSearch && matchRisk;
+  });
+
+  const stats = {
+    critical: customers.filter(c => c.riskLevel === "critical").length,
+    high: customers.filter(c => c.riskLevel === "high").length,
+    medium: customers.filter(c => c.riskLevel === "medium").length,
+    low: customers.filter(c => c.riskLevel === "low").length,
+    avgChurn: (customers.reduce((s, c) => s + c.churnScore, 0) / customers.length * 100).toFixed(1),
+    totalCLV: (customers.reduce((s, c) => s + c.clv, 0) / 1000).toFixed(0),
+  };
+
+  const runFullAIAnalysis = async () => {
+    if (aiRunning) return;
+    setAiRunning(true);
+    const steps = [
+      "Initializing 5-qubit variational circuit...",
+      "Encoding 128 customer features into Hilbert space...",
+      "Running quantum kernel estimation...",
+      "Applying Vedic Anurupyena normalization sutra...",
+      "BERT fine-tuned NLP: processing sentiment vectors...",
+      "Fibonacci spiral cohort segmentation...",
+      "Federated learning model aggregation...",
+      "Generating ZK-SNARK proofs for all predictions...",
+      "Committing 20 audit records to Hyperledger...",
+      "RL agent computing optimal retention strategies...",
+      "Dynamic pricing optimization via quantum annealing...",
+      "Mayan calendar cycle detection: anomalies flagged...",
+      "Pipeline complete — all customers re-scored.",
+    ];
+    for (const step of steps) {
+      await new Promise(r => setTimeout(r, 350));
+      setAiLog(prev => [`[PIPELINE] ${step}`, ...prev.slice(0, 14)]);
+    }
+    // refresh all customers
+    setCustomers(prev => prev.map((c, i) => { const n = generateCustomer(i); n.name = c.name; return n; }));
+    setAiRunning(false);
+  };
+
+  const tabs = [
+    { id: "dashboard", label: "🌐 Command Center" },
+    { id: "customers", label: "👥 Customer Matrix" },
+    { id: "quantum", label: "⚛ Quantum Engine" },
+    { id: "blockchain", label: "🔗 Blockchain Ledger" },
+    { id: "strategies", label: "🎯 Retention AI" },
+  ];
+
+  return (
+    <div style={{
+      minHeight: "100vh",
+      background: "#050A1A",
+      fontFamily: "'Calibri', 'Segoe UI', sans-serif",
+      color: "#E2E8F0",
+      position: "relative",
+      overflow: "hidden",
+    }}>
+      <style>{`
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: #050A1A; }
+        ::-webkit-scrollbar-thumb { background: #1E3A5F; border-radius: 2px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+      `}</style>
+
+      {/* Background particles */}
+      <div style={{ position: "fixed", inset: 0, pointerEvents: "none" }}>
+        <GlowOrb cx={100} cy={200} r={300} color="#0891B2" opacity={0.06} />
+        <GlowOrb cx={900} cy={100} r={250} color="#7C3AED" opacity={0.05} />
+        <GlowOrb cx={500} cy={500} r={200} color="#10B981" opacity={0.04} />
+      </div>
+
+      {/* Header */}
+      <div style={{
+        borderBottom: "1px solid #1E3A5F",
+        background: "#050A1Aee",
+        backdropFilter: "blur(10px)",
+        position: "sticky", top: 0, zIndex: 100,
+        padding: "0 24px",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 56 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {/* Logo */}
+            <div style={{ position: "relative", width: 36, height: 36 }}>
+              <div style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "2px solid #0891B2", animation: "spin 8s linear infinite", opacity: 0.6 }} />
+              <div style={{ position: "absolute", inset: 4, borderRadius: "50%", border: "2px solid #7C3AED", animation: "spin 5s linear infinite reverse", opacity: 0.5 }} />
+              <div style={{ position: "absolute", inset: 8, borderRadius: "50%", background: "#0891B2" }} />
+            </div>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: "#FFFFFF", letterSpacing: 2, fontFamily: "Georgia, serif" }}>
+                QUANTUM<span style={{ color: "#0891B2" }}>CHURN</span>
+              </div>
+              <div style={{ fontSize: 9, color: "#64748B", letterSpacing: 3, textTransform: "uppercase" }}>Intelligence Platform v2.6</div>
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div style={{ display: "flex", gap: 4 }}>
+            {tabs.map(t => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                style={{
+                  padding: "6px 14px",
+                  background: tab === t.id ? "#0891B2" : "transparent",
+                  border: `1px solid ${tab === t.id ? "#0891B2" : "#1E3A5F"}`,
+                  borderRadius: 6,
+                  color: tab === t.id ? "#FFFFFF" : "#94A3B8",
+                  fontSize: 12, fontWeight: tab === t.id ? 700 : 400,
+                  cursor: "pointer", transition: "all 0.2s",
+                  letterSpacing: 0.5,
+                }}
+              >{t.label}</button>
+            ))}
+          </div>
+
+          {/* Live indicators */}
+          <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 9, color: "#64748B", letterSpacing: 2 }}>EVENTS/SEC</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#10B981" }}>{processingCount.toLocaleString()}</div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 20, border: "1px solid #10B981", background: "#10B98122" }}>
+              <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#10B981", animation: "pulse 1.5s infinite" }} />
+              <span style={{ fontSize: 11, color: "#10B981", fontWeight: 600 }}>LIVE</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div style={{ padding: "20px 24px", maxWidth: 1400, margin: "0 auto" }}>
+
+        {/* ── DASHBOARD TAB ── */}
+        {tab === "dashboard" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            {/* KPI Row */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 12 }}>
+              <MetricCard label="Total Events Processed" value={totalEventsProcessed.toLocaleString()} color="#0891B2" sub="since deployment" trend={12} />
+              <MetricCard label="Critical Risk" value={stats.critical} color="#EF4444" sub="need immediate action" trend={-8} />
+              <MetricCard label="Avg Churn Score" value={`${stats.avgChurn}%`} color="#F59E0B" sub="across all customers" trend={-3} />
+              <MetricCard label="Total CLV at Risk" value={`$${stats.totalCLV}K`} color="#7C3AED" sub="protected by QCI" />
+              <MetricCard label="Quantum Accuracy" value="97.3%" color="#10B981" sub="VQC classifier" trend={2} />
+              <MetricCard label="ZK Proofs Today" value="12,847" color="#EC4899" sub="GDPR compliant" trend={18} />
+            </div>
+
+            {/* Main grid */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 20 }}>
+              {/* Left */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                {/* Risk distribution */}
+                <div style={{ background: "#0A1628", border: "1px solid #1E3A5F", borderRadius: 12, padding: 16 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#94A3B8", letterSpacing: 2, marginBottom: 12, textTransform: "uppercase" }}>Risk Distribution Matrix</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+                    {[
+                      { level: "critical", count: stats.critical, color: "#EF4444", icon: "🔴" },
+                      { level: "high", count: stats.high, color: "#F59E0B", icon: "🟡" },
+                      { level: "medium", count: stats.medium, color: "#3B82F6", icon: "🔵" },
+                      { level: "low", count: stats.low, color: "#10B981", icon: "🟢" },
+                    ].map(r => (
+                      <div key={r.level} style={{ background: `${r.color}11`, border: `1px solid ${r.color}33`, borderRadius: 10, padding: 14 }}>
+                        <div style={{ fontSize: 20 }}>{r.icon}</div>
+                        <div style={{ fontSize: 32, fontWeight: 800, color: r.color, fontFamily: "Georgia" }}>{r.count}</div>
+                        <div style={{ fontSize: 11, color: "#94A3B8", textTransform: "uppercase", letterSpacing: 1 }}>{r.level}</div>
+                        <div style={{ marginTop: 8, height: 4, background: "#1E3A5F", borderRadius: 2 }}>
+                          <div style={{ width: `${(r.count / customers.length) * 100}%`, height: "100%", background: r.color, borderRadius: 2, transition: "width 0.5s" }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* AI Run Pipeline */}
+                <div style={{ background: "#0A1628", border: "1px solid #1E3A5F", borderRadius: 12, padding: 16 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#94A3B8", letterSpacing: 2, textTransform: "uppercase" }}>⚙ AI Pipeline Console</div>
+                    <button
+                      onClick={runFullAIAnalysis}
+                      disabled={aiRunning}
+                      style={{
+                        padding: "7px 16px", borderRadius: 7, border: "none",
+                        background: aiRunning ? "#1E3A5F" : "linear-gradient(135deg, #0891B2, #7C3AED)",
+                        color: "#fff", fontWeight: 700, fontSize: 11, cursor: aiRunning ? "wait" : "pointer",
+                        letterSpacing: 1,
+                      }}
+                    >
+                      {aiRunning ? "⏳ RUNNING PIPELINE..." : "▶ RUN FULL PIPELINE"}
+                    </button>
+                  </div>
+                  <div style={{
+                    background: "#050A1A", borderRadius: 8, padding: 12, height: 160, overflowY: "auto",
+                    fontFamily: "Consolas, monospace", fontSize: 11,
+                  }}>
+                    {aiLog.map((line, i) => (
+                      <div key={i} style={{ color: i === 0 ? "#06B6D4" : "#475569", marginBottom: 2 }}>{line}</div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Selected customer deep dive */}
+                {selectedCustomer && (
+                  <div style={{ background: "#0A1628", border: `1px solid ${RISK_COLORS[selectedCustomer.riskLevel]}44`, borderRadius: 12, padding: 16, animation: "fadeIn 0.3s ease" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: 12 }}>
+                      <div>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: "#FFFFFF" }}>{selectedCustomer.name}</div>
+                        <div style={{ fontSize: 11, color: "#64748B" }}>{selectedCustomer.segment} · Active {selectedCustomer.daysActive} days</div>
+                      </div>
+                      <button onClick={() => setSelectedCustomer(null)} style={{ background: "none", border: "none", color: "#64748B", cursor: "pointer", fontSize: 18 }}>✕</button>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "160px 1fr 1fr", gap: 16, alignItems: "start" }}>
+                      <ChurnGauge score={selectedCustomer.churnScore} />
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        {[
+                          ["CLV", `$${selectedCustomer.clv.toLocaleString()}`],
+                          ["NPS Score", selectedCustomer.npsScore + "/10"],
+                          ["Support Tickets", selectedCustomer.supportTickets],
+                          ["Last Activity", `${selectedCustomer.lastActivity} days ago`],
+                          ["Price Sensitivity", (selectedCustomer.priceSensitivity * 100).toFixed(0) + "%"],
+                          ["Quantum Confidence", (selectedCustomer.quantumConfidence * 100).toFixed(1) + "%"],
+                        ].map(([k, v]) => (
+                          <div key={k} style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #1E3A5F", paddingBottom: 4 }}>
+                            <span style={{ color: "#64748B", fontSize: 11 }}>{k}</span>
+                            <span style={{ color: "#E2E8F0", fontWeight: 600, fontSize: 12 }}>{v}</span>
+                          </div>
+                        ))}
+                        <div style={{ marginTop: 4 }}>
+                          <SentimentWave value={parseFloat(selectedCustomer.sentiment)} />
+                        </div>
+                      </div>
+                      <PricingOptimizer customer={selectedCustomer} />
+                    </div>
+                    <div style={{ marginTop: 12, padding: "10px 14px", background: `${RISK_COLORS[selectedCustomer.riskLevel]}11`, borderRadius: 8, border: `1px solid ${RISK_COLORS[selectedCustomer.riskLevel]}33` }}>
+                      <span style={{ color: "#94A3B8", fontSize: 11 }}>RECOMMENDED STRATEGY: </span>
+                      <span style={{ color: RISK_COLORS[selectedCustomer.riskLevel], fontWeight: 700, fontSize: 13 }}>{selectedCustomer.strategy}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Right — Live feed */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <div style={{ background: "#0A1628", border: "1px solid #1E3A5F", borderRadius: 12, padding: 16 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#94A3B8", letterSpacing: 2, textTransform: "uppercase", marginBottom: 12 }}>📡 Real-Time Event Stream</div>
+                  <div style={{ overflowY: "auto", maxHeight: 340 }}>
+                    {liveFeed.map((item, i) => (
+                      <LiveFeedItem key={i} customer={item.customer} timestamp={item.timestamp} />
+                    ))}
+                    {liveFeed.length === 0 && <div style={{ color: "#475569", fontSize: 12 }}>Waiting for events...</div>}
+                  </div>
+                </div>
+
+                <div style={{ background: "#0A1628", border: "1px solid #1E3A5F", borderRadius: 12, padding: 16 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#94A3B8", letterSpacing: 2, textTransform: "uppercase", marginBottom: 12 }}>🔗 Latest Blockchain Records</div>
+                  <BlockchainViz customers={liveFeed.slice(0, 5).map(f => f.customer)} />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── CUSTOMERS TAB ── */}
+        {tab === "customers" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {/* Filters */}
+            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+              <input
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="🔍 Search customers..."
+                style={{
+                  flex: 1, padding: "9px 14px", background: "#0A1628",
+                  border: "1px solid #1E3A5F", borderRadius: 8,
+                  color: "#E2E8F0", fontSize: 13, outline: "none",
+                }}
+              />
+              {["all", "critical", "high", "medium", "low"].map(r => (
+                <button key={r} onClick={() => setFilterRisk(r)} style={{
+                  padding: "8px 14px", borderRadius: 7,
+                  background: filterRisk === r ? (r === "all" ? "#0891B2" : RISK_COLORS[r]) : "transparent",
+                  border: `1px solid ${r === "all" ? "#0891B2" : (RISK_COLORS[r] || "#1E3A5F")}`,
+                  color: "#FFFFFF", fontSize: 11, fontWeight: 700, cursor: "pointer", letterSpacing: 1,
+                  textTransform: "uppercase"
+                }}>{r}</button>
+              ))}
+            </div>
+
+            {/* Table header */}
+            <div style={{
+              display: "grid", gridTemplateColumns: "1.5fr 0.8fr 0.8fr 0.8fr 0.9fr 1.2fr",
+              gap: 8, padding: "8px 14px", background: "#0A1628", borderRadius: 8,
+              fontSize: 10, fontWeight: 700, color: "#64748B", letterSpacing: 2, textTransform: "uppercase"
+            }}>
+              <div>Customer</div><div>Churn Risk</div><div>CLV</div><div>Sentiment</div><div>Confidence</div><div>Top Strategy</div>
+            </div>
+
+            <div style={{ background: "#0A1628", border: "1px solid #1E3A5F", borderRadius: 10, overflow: "hidden" }}>
+              {filtered.map(c => (
+                <CustomerRow key={c.id} customer={c} onSelect={setSelectedCustomer} selected={selectedCustomer?.id === c.id} />
+              ))}
+            </div>
+
+            {selectedCustomer && (
+              <div style={{ background: "#0A1628", border: `1px solid ${RISK_COLORS[selectedCustomer.riskLevel]}55`, borderRadius: 12, padding: 20, animation: "fadeIn 0.3s ease" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "200px 1fr 280px", gap: 20, alignItems: "start" }}>
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: "#FFF", marginBottom: 4 }}>{selectedCustomer.name}</div>
+                    <ChurnGauge score={selectedCustomer.churnScore} />
+                    <div style={{ marginTop: 8, padding: "8px 12px", background: "#050A1A", borderRadius: 8, fontSize: 10, fontFamily: "Consolas", color: "#64748B", wordBreak: "break-all" }}>
+                      ZK: 0x{selectedCustomer.blockchainHash}
+                    </div>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                    {[
+                      ["Segment", selectedCustomer.segment],
+                      ["Days Active", selectedCustomer.daysActive],
+                      ["CLV", `$${selectedCustomer.clv.toLocaleString()}`],
+                      ["NPS", `${selectedCustomer.npsScore}/10`],
+                      ["Support Tickets", selectedCustomer.supportTickets],
+                      ["Last Activity", `${selectedCustomer.lastActivity}d ago`],
+                      ["Price Sensitivity", `${(selectedCustomer.priceSensitivity * 100).toFixed(0)}%`],
+                      ["Quantum Confidence", `${(selectedCustomer.quantumConfidence * 100).toFixed(1)}%`],
+                    ].map(([k, v]) => (
+                      <div key={k} style={{ background: "#050A1A", padding: "8px 12px", borderRadius: 6 }}>
+                        <div style={{ fontSize: 10, color: "#64748B", marginBottom: 2 }}>{k}</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: "#E2E8F0" }}>{v}</div>
+                      </div>
+                    ))}
+                    <div style={{ gridColumn: "1/-1" }}><SentimentWave value={parseFloat(selectedCustomer.sentiment)} /></div>
+                  </div>
+                  <PricingOptimizer customer={selectedCustomer} />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── QUANTUM ENGINE TAB ── */}
+        {tab === "quantum" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 20 }}>
+              <div style={{ background: "#0A1628", border: "1px solid #1E3A5F", borderRadius: 12, padding: 20 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: "#0891B2", letterSpacing: 2 }}>VARIATIONAL QUANTUM CIRCUIT</div>
+                    <div style={{ fontSize: 11, color: "#64748B", marginTop: 2 }}>5-qubit VQC for customer churn classification · Hilbert space encoding</div>
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      onClick={() => setQuantumActive(p => !p)}
+                      style={{
+                        padding: "7px 14px", borderRadius: 7, border: "1px solid #0891B2",
+                        background: quantumActive ? "#0891B2" : "transparent",
+                        color: "#FFFFFF", fontSize: 11, fontWeight: 700, cursor: "pointer"
+                      }}
+                    >{quantumActive ? "⏸ PAUSE" : "▶ RESUME"}</button>
+                  </div>
+                </div>
+                <QuantumCircuitViz active={quantumActive} />
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginTop: 16 }}>
+                  {[
+                    ["Qubits", "5", "#0891B2"],
+                    ["Circuit Depth", "18", "#7C3AED"],
+                    ["Gate Count", "42", "#F59E0B"],
+                    ["Avg Fidelity", "99.1%", "#10B981"],
+                  ].map(([l, v, c]) => (
+                    <div key={l} style={{ background: "#050A1A", padding: "10px 14px", borderRadius: 8, textAlign: "center" }}>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: c, fontFamily: "Georgia" }}>{v}</div>
+                      <div style={{ fontSize: 10, color: "#64748B", marginTop: 2 }}>{l}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Right info */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                {[
+                  { title: "Quantum Kernel SVM", desc: "Feature map φ(x) → quantum state |ψ(x)⟩. Inner products computed via swap-test circuit. 340% more separable boundaries.", color: "#7C3AED" },
+                  { title: "Federated Learning", desc: "847 edge nodes contributing gradients. FedAvg aggregation every 60s. Local differential privacy ε=0.1.", color: "#10B981" },
+                  { title: "Vedic Math Engine", desc: "Anurupyena sutra applied to normalize 128 features in O(n) vs standard O(n log n). 73% preprocessing speedup.", color: "#F59E0B" },
+                  { title: "Temporal Fibonacci", desc: "Churn cycles detected using Fibonacci time series decomposition. Mayan 365-day precision calendar for seasonal patterns.", color: "#EC4899" },
+                ].map(t => (
+                  <div key={t.title} style={{ background: "#0A1628", border: "1px solid #1E3A5F", borderRadius: 10, padding: 14, borderLeft: `3px solid ${t.color}` }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: t.color, marginBottom: 6 }}>{t.title}</div>
+                    <div style={{ fontSize: 11, color: "#94A3B8", lineHeight: 1.5 }}>{t.desc}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── BLOCKCHAIN TAB ── */}
+        {tab === "blockchain" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+              <MetricCard label="Total Blocks" value="48,291" color="#F59E0B" sub="on Hyperledger Fabric" />
+              <MetricCard label="ZK Proofs" value="12,847" color="#7C3AED" sub="generated today" />
+              <MetricCard label="Smart Contracts" value="156" color="#10B981" sub="active retention contracts" />
+              <MetricCard label="Audit Coverage" value="100%" color="#0891B2" sub="all predictions logged" />
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              {/* Block ledger */}
+              <div style={{ background: "#0A1628", border: "1px solid #1E3A5F", borderRadius: 12, padding: 16 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#F59E0B", letterSpacing: 2, marginBottom: 14, textTransform: "uppercase" }}>📦 Live Block Stream</div>
+                {customers.slice(0, 10).map((c, i) => (
+                  <div key={c.id} style={{
+                    display: "flex", gap: 10, padding: "10px 0",
+                    borderBottom: "1px solid #1E3A5F",
+                    animation: "fadeIn 0.3s ease"
+                  }}>
+                    <div style={{ background: "#F59E0B22", border: "1px solid #F59E0B44", borderRadius: 4, padding: "4px 8px", fontSize: 11, fontWeight: 700, color: "#F59E0B", flexShrink: 0 }}>
+                      #{(48291 - i).toLocaleString()}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontFamily: "Consolas", fontSize: 10, color: "#64748B" }}>0x{c.blockchainHash}{c.blockchainHash.slice(0, 8)}</div>
+                      <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 2 }}>
+                        ChurnPred: {c.name} · Score: {(c.churnScore * 100).toFixed(0)}% · ZK-verified
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 10, color: "#10B981", flexShrink: 0 }}>✓ VALID</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Smart contracts */}
+              <div style={{ background: "#0A1628", border: "1px solid #1E3A5F", borderRadius: 12, padding: 16 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#10B981", letterSpacing: 2, marginBottom: 14, textTransform: "uppercase" }}>⚡ Active Smart Contracts</div>
+                {customers.filter(c => c.riskLevel === "critical" || c.riskLevel === "high").slice(0, 8).map(c => (
+                  <div key={c.id} style={{ padding: "10px 0", borderBottom: "1px solid #1E3A5F" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{c.name}</div>
+                        <div style={{ fontSize: 10, color: "#64748B", marginTop: 2 }}>{c.strategy}</div>
+                      </div>
+                      <div style={{
+                        padding: "3px 8px", borderRadius: 12,
+                        background: `${RISK_COLORS[c.riskLevel]}22`,
+                        border: `1px solid ${RISK_COLORS[c.riskLevel]}44`,
+                        fontSize: 10, color: RISK_COLORS[c.riskLevel], fontWeight: 700
+                      }}>TRIGGERED</div>
+                    </div>
+                    <div style={{ height: 3, background: "#1E3A5F", borderRadius: 2, marginTop: 6 }}>
+                      <div style={{ width: `${c.churnScore * 100}%`, height: "100%", background: RISK_COLORS[c.riskLevel], borderRadius: 2 }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── RETENTION AI TAB ── */}
+        {tab === "strategies" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+              <MetricCard label="Strategies Deployed" value="1,247" color="#EC4899" sub="last 30 days" trend={23} />
+              <MetricCard label="Win-Back Rate" value="44%" color="#10B981" sub="re-engaged customers" trend={8} />
+              <MetricCard label="Avg Offer Discount" value="17.3%" color="#F59E0B" sub="quantum-optimized" trend={-4} />
+              <MetricCard label="Revenue Saved" value="$2.8M" color="#0891B2" sub="this month" trend={31} />
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              {/* Strategy playbook */}
+              <div style={{ background: "#0A1628", border: "1px solid #1E3A5F", borderRadius: 12, padding: 16 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#EC4899", letterSpacing: 2, marginBottom: 14, textTransform: "uppercase" }}>🎯 RL Strategy Playbook</div>
+                {[
+                  { name: "Proactive CEO Outreach", score: 94, lift: "+63%", type: "critical" },
+                  { name: "Emergency Loyalty Bonus", score: 89, lift: "+51%", type: "critical" },
+                  { name: "Personal Retention Call", score: 82, lift: "+44%", type: "high" },
+                  { name: "Exclusive Feature Preview", score: 78, lift: "+38%", type: "high" },
+                  { name: "Onboarding Re-engagement", score: 71, lift: "+29%", type: "medium" },
+                  { name: "Milestone Reward", score: 65, lift: "+22%", type: "medium" },
+                  { name: "Loyalty Points Boost", score: 58, lift: "+15%", type: "low" },
+                  { name: "NPS Survey Follow-up", score: 51, lift: "+10%", type: "low" },
+                ].map(s => (
+                  <div key={s.name} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 0", borderBottom: "1px solid #1E3A5F" }}>
+                    <div style={{ width: 32, height: 32, borderRadius: "50%", background: `${RISK_COLORS[s.type]}22`, border: `2px solid ${RISK_COLORS[s.type]}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: RISK_COLORS[s.type], flexShrink: 0 }}>
+                      {s.score}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: "#E2E8F0" }}>{s.name}</div>
+                      <div style={{ height: 4, background: "#1E3A5F", borderRadius: 2, marginTop: 4 }}>
+                        <div style={{ width: `${s.score}%`, height: "100%", background: RISK_COLORS[s.type], borderRadius: 2 }} />
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: "#10B981", flexShrink: 0 }}>{s.lift}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Customer strategy assignments */}
+              <div style={{ background: "#0A1628", border: "1px solid #1E3A5F", borderRadius: 12, padding: 16 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#0891B2", letterSpacing: 2, marginBottom: 14, textTransform: "uppercase" }}>🤖 AI-Assigned Actions</div>
+                {customers.filter(c => c.riskLevel === "critical" || c.riskLevel === "high").map(c => (
+                  <div key={c.id} style={{
+                    padding: "10px 12px", marginBottom: 8,
+                    background: "#050A1A", borderRadius: 8,
+                    border: `1px solid ${RISK_COLORS[c.riskLevel]}33`,
+                    borderLeft: `3px solid ${RISK_COLORS[c.riskLevel]}`,
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0" }}>{c.name}</div>
+                        <div style={{ fontSize: 11, color: RISK_COLORS[c.riskLevel], marginTop: 2 }}>{c.strategy}</div>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: RISK_COLORS[c.riskLevel] }}>{(c.churnScore * 100).toFixed(0)}%</div>
+                        <div style={{ fontSize: 9, color: "#64748B" }}>churn risk</div>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                      <div style={{ fontSize: 10, color: "#94A3B8" }}>CLV: <b style={{ color: "#E2E8F0" }}>${c.clv.toLocaleString()}</b></div>
+                      <div style={{ fontSize: 10, color: "#94A3B8" }}>Sentiment: <b style={{ color: parseFloat(c.sentiment) > 0 ? "#10B981" : "#EF4444" }}>{c.sentiment}</b></div>
+                      <div style={{ fontSize: 10, color: "#94A3B8" }}>RL Conf: <b style={{ color: "#0891B2" }}>{(c.quantumConfidence * 100).toFixed(0)}%</b></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div style={{
+        borderTop: "1px solid #1E3A5F", padding: "12px 24px",
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        background: "#050A1Aee", backdropFilter: "blur(10px)",
+        fontSize: 10, color: "#475569", marginTop: 24,
+      }}>
+        <div>Quantum Churn Intelligence v2.6 · Powered by VQC + Hyperledger + ZK-SNARK + BERT + Federated Learning · Built to Rule the World</div>
+        <div>Total Events: {totalEventsProcessed.toLocaleString()} · Nodes Active: 847 · GDPR Compliant ✓</div>
+      </div>
+    </div>
+  );
+}
